@@ -90,16 +90,23 @@
     startBtn.addEventListener('click', async () => {
       try {
         messageEl.textContent = '';
-        // Request screen + audio
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        // Request screen (with system audio) and microphone audio
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true
         });
-        // Show live preview
-        preview.srcObject = stream;
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Combine screen video, system audio, and mic audio tracks
+        const combinedStream = new MediaStream([
+          ...screenStream.getVideoTracks(),
+          ...screenStream.getAudioTracks(),
+          ...micStream.getAudioTracks()
+        ]);
+        // Show live preview of combined stream
+        preview.srcObject = combinedStream;
 
-        // Setup MediaRecorder
-        mediaRecorder = new MediaRecorder(stream, {
+        // Setup MediaRecorder on combined stream
+        mediaRecorder = new MediaRecorder(combinedStream, {
           mimeType: 'video/webm; codecs=vp8,opus'
         });
 
