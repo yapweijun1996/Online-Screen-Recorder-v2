@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Screen & Audio Recorder</title>
+  <style>
+    /* Styles */
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    video {
+      max-width: 100%;
+      background: #000;
+      margin: 20px 0;
+    }
+    .controls {
+      margin: 10px 0;
+    }
+    button {
+      margin: 0 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #downloadLink {
+      display: none;
+      margin-top: 15px;
+      font-size: 16px;
+      text-decoration: none;
+      color: #fff;
+      background: #4CAF50;
+      padding: 10px 20px;
+      border-radius: 5px;
+    }
+    #downloadLink:hover {
+      background: #45a049;
+    }
+    #message {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Screen & Audio Recorder
+    This application captures your screen and audio using Chrome's getDisplayMedia and MediaRecorder APIs.
+    Click "Start Recording" and choose "Entire screen" or "Chrome Tab" with audio enabled.
+    Use Pause/Resume as needed, then "Stop Recording" to finish and download the video.
+  -->
+  <h1>Screen & Audio Recorder</h1>
+  <video id="preview" autoplay muted playsinline></video>
+
+  <div class="controls">
+    <button id="startBtn">Start Recording</button>
+    <button id="pauseBtn" disabled>Pause</button>
+    <button id="resumeBtn" disabled>Resume</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+  </div>
+
+  <a id="downloadLink">Download Recording</a>
+
+  <div id="message"></div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const downloadLink = document.getElementById('downloadLink');
+    const preview = document.getElementById('preview');
+    const messageEl = document.getElementById('message');
+
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    startBtn.addEventListener('click', async () => {
+      try {
+        messageEl.textContent = '';
+        // Request screen + audio
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+        // Show live preview
+        preview.srcObject = stream;
+
+        // Setup MediaRecorder
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm; codecs=vp8,opus'
+        });
+
+        // Handlers
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            recordedChunks.push(e.data);
+          }
+        };
+        mediaRecorder.onerror = (e) => {
+          console.error('Recording error:', e);
+          messageEl.textContent = 'Recording error: ' + e.error?.message;
+        };
+        mediaRecorder.onstop = handleStop;
+
+        // Start recording
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+      } catch (err) {
+        console.error('Error accessing display media.', err);
+        messageEl.textContent = 'Error: ' + err.message;
+      }
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.pause();
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = false;
+      }
+    });
+
+    resumeBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'paused') {
+        mediaRecorder.resume();
+        resumeBtn.disabled = true;
+        pauseBtn.disabled = false;
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) {
+        mediaRecorder.stop();
+        // Stop all tracks to end the preview
+        preview.srcObject.getTracks().forEach(track => track.stop());
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = true;
+        stopBtn.disabled = true;
+      }
+    });
+
+    function handleStop() {
+      // Create Blob from recorded chunks
+      const blob = new Blob(recordedChunks, {
+        type: 'video/webm'
+      });
+      recordedChunks = [];
+
+      // Generate download link
+      const url = URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadLink.download = 'recording.webm';
+      downloadLink.style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html> 
