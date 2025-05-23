@@ -1,56 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Screen & Audio Recorder</title>
   <style>
-    /* Styles */
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      margin: 0;
-      padding: 20px;
+    /* Design Tokens */
+    :root {
+      --primary: #4caf50;
+      --accent: #2196f3;
+      --danger: #d9534f;
+      --bg: #f0f0f0;
+      --text: #333;
+      --radius: 0.5rem;
+      --spacing: 1rem;
+      --font-stack: 'Helvetica Neue', Arial, sans-serif;
     }
-    h1 {
-      color: #333;
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: var(--spacing);
+      font-family: var(--font-stack);
+      background: var(--bg);
+      color: var(--text);
+      text-align: center;
+    }
+    .container {
+      max-width: 800px; margin: auto;
+      display: flex; flex-direction: column;
+      align-items: center; gap: var(--spacing);
+    }
+    h1 { font-size: 2rem; margin-bottom: var(--spacing); }
+    .video-wrapper {
+      position: relative; width: 100%;
+      background: #000; border-radius: var(--radius);
+      overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     video {
-      max-width: 100%;
-      background: #000;
-      margin: 20px 0;
+      width: 100%; display: block;
+    }
+    #countdown {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 5rem; color: #fff;
+      pointer-events: none; opacity: 0;
     }
     .controls {
-      margin: 10px 0;
+      display: flex; flex-wrap: wrap;
+      gap: var(--spacing);
     }
-    button {
-      margin: 0 5px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5ch;
+      padding: 0.75rem 1.25rem; font-size: 1rem;
+      border: none; border-radius: var(--radius);
+      color: #fff; background: var(--primary);
+      cursor: pointer; transition: background 0.2s;
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-start { background: var(--accent); }
+    .btn-pause, .btn-resume { background: var(--primary); }
+    .btn-stop { background: var(--danger); }
+    .btn-download { background: var(--accent); margin-top: var(--spacing); text-decoration: none; }
+    .btn svg { width: 1em; height: 1em; fill: currentColor; }
+    .btn:hover:not(:disabled) { filter: brightness(1.1); }
+    #status {
+      display: flex; align-items: center; gap: 0.5ch;
+      font-size: 1rem;
     }
-    #downloadLink {
-      display: none;
-      margin-top: 15px;
-      font-size: 16px;
-      text-decoration: none;
-      color: #fff;
-      background: #4CAF50;
-      padding: 10px 20px;
-      border-radius: 5px;
+    #recordBadge {
+      color: var(--danger); font-weight: bold;
+      animation: blink 1s steps(1) infinite;
     }
-    #downloadLink:hover {
-      background: #45a049;
-    }
-    #message {
-      color: red;
-      margin-top: 10px;
+    @keyframes blink { 50% { opacity: 0; } }
+    #timer { font-family: monospace; }
+    #message { color: var(--danger); min-height: 1.2em; }
+    @media (max-width: 600px) {
+      .controls { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -61,20 +87,35 @@
     Click "Start Recording" and choose "Entire screen" or "Chrome Tab" with audio enabled.
     Use Pause/Resume as needed, then "Stop Recording" to finish and download the video.
   -->
-  <h1>Screen & Audio Recorder</h1>
-  <video id="preview" autoplay muted playsinline></video>
-
-  <div class="controls">
-    <button id="startBtn">Start Recording</button>
-    <button id="pauseBtn" disabled>Pause</button>
-    <button id="resumeBtn" disabled>Resume</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
+  <div class="container">
+    <h1>Screen & Audio Recorder</h1>
+    <div class="video-wrapper">
+      <video id="preview" autoplay muted playsinline></video>
+      <div id="countdown" aria-hidden="true"></div>
+    </div>
+    <div id="status">
+      <span id="recordBadge" hidden>● Recording</span>
+      <span id="timer">00:00</span>
+    </div>
+    <div class="controls">
+      <button id="startBtn" class="btn btn-start" aria-label="Start Recording">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start
+      </button>
+      <button id="pauseBtn" class="btn btn-pause" disabled aria-label="Pause Recording">
+        <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8 0h4V5h-4z"/></svg> Pause
+      </button>
+      <button id="resumeBtn" class="btn btn-resume" disabled aria-label="Resume Recording">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Resume
+      </button>
+      <button id="stopBtn" class="btn btn-stop" disabled aria-label="Stop Recording">
+        <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Stop
+      </button>
+    </div>
+    <a id="downloadLink" class="btn btn-download" hidden aria-label="Download Recording">
+      <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v4h4v-4h3l-5-5z"/></svg> Download
+    </a>
+    <div id="message" role="alert" aria-live="assertive"></div>
   </div>
-
-  <a id="downloadLink">Download Recording</a>
-
-  <div id="message"></div>
-
   <script>
     const startBtn = document.getElementById('startBtn');
     const pauseBtn = document.getElementById('pauseBtn');
@@ -83,104 +124,115 @@
     const downloadLink = document.getElementById('downloadLink');
     const preview = document.getElementById('preview');
     const messageEl = document.getElementById('message');
+    const recordBadge = document.getElementById('recordBadge');
+    const timerEl = document.getElementById('timer');
+    const countdownEl = document.getElementById('countdown');
 
-    let mediaRecorder;
-    let recordedChunks = [];
+    let mediaRecorder, recordedChunks = [];
+    let timerInterval, startTime;
 
-    startBtn.addEventListener('click', async () => {
-      try {
-        messageEl.textContent = '';
-        // Request screen (with system audio) and microphone audio
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true
-        });
-        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Combine screen video, system audio, and mic audio tracks
-        const combinedStream = new MediaStream([
+    startBtn.addEventListener('click', () => {
+      // Run 3-2-1 countdown
+      countdownEl.style.opacity = '1';
+      [3,2,1].forEach((n,i) => {
+        setTimeout(() => {
+          countdownEl.textContent = n;
+          if (i === 2) {
+            setTimeout(() => {
+              countdownEl.style.opacity = '0';
+              countdownEl.textContent = '';
+              beginRecording();
+            }, 500);
+          }
+        }, i * 1000);
+      });
+    });
+
+    function beginRecording() {
+      messageEl.textContent = '';
+      // Request screen + mic
+      Promise.all([
+        navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }),
+        navigator.mediaDevices.getUserMedia({ audio: true })
+      ]).then(([screenStream, micStream]) => {
+        const combined = new MediaStream([
           ...screenStream.getVideoTracks(),
           ...screenStream.getAudioTracks(),
           ...micStream.getAudioTracks()
         ]);
-        // Show live preview of combined stream
-        preview.srcObject = combinedStream;
-
-        // Setup MediaRecorder on combined stream
-        mediaRecorder = new MediaRecorder(combinedStream, {
-          mimeType: 'video/webm; codecs=vp8,opus'
-        });
-
-        // Handlers
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            recordedChunks.push(e.data);
-          }
-        };
-        mediaRecorder.onerror = (e) => {
-          console.error('Recording error:', e);
-          messageEl.textContent = 'Recording error: ' + e.error?.message;
-        };
-        mediaRecorder.onstop = handleStop;
-
-        // Start recording
+        preview.srcObject = combined;
+        setupRecorder(combined);
         mediaRecorder.start();
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error('Error accessing display media.', err);
+        startTimer();
+        toggleButtons('recording');
+      }).catch(err => {
         messageEl.textContent = 'Error: ' + err.message;
-      }
-    });
+      });
+    }
+
+    function setupRecorder(stream) {
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8,opus' });
+      mediaRecorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = handleStop;
+    }
 
     pauseBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
+      if (mediaRecorder.state === 'recording') {
         mediaRecorder.pause();
-        pauseBtn.disabled = true;
-        resumeBtn.disabled = false;
+        pauseTimer();
+        toggleButtons('paused');
       }
     });
-
     resumeBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state === 'paused') {
+      if (mediaRecorder.state === 'paused') {
         mediaRecorder.resume();
-        resumeBtn.disabled = true;
-        pauseBtn.disabled = false;
+        resumeTimer();
+        toggleButtons('recording');
       }
     });
-
     stopBtn.addEventListener('click', () => {
-      if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) {
+      if (mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
-        // Stop all tracks to end the preview
-        preview.srcObject.getTracks().forEach(track => track.stop());
-        startBtn.disabled = false;
-        pauseBtn.disabled = true;
-        resumeBtn.disabled = true;
-        stopBtn.disabled = true;
+        stopTimer();
+        toggleButtons('stopped');
       }
     });
 
     function handleStop() {
-      // Create Blob from recorded chunks
-      const blob = new Blob(recordedChunks, {
-        type: 'video/webm'
-      });
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
       recordedChunks = [];
-
-      // Generate download link
       const url = URL.createObjectURL(blob);
       downloadLink.href = url;
-      downloadLink.download = 'recording.webm';
-      downloadLink.style.display = 'inline-block';
-
-      // Playback the recording in the preview
+      downloadLink.hidden = false;
       preview.srcObject = null;
       preview.src = url;
       preview.controls = true;
       preview.muted = false;
       preview.play();
+      recordBadge.hidden = true;
     }
+
+    function toggleButtons(state) {
+      startBtn.disabled = state==='recording';
+      pauseBtn.disabled = state!=='recording';
+      resumeBtn.disabled = state!=='paused';
+      stopBtn.disabled = state==='stopped';
+      recordBadge.hidden = state!=='recording';
+      downloadLink.hidden = state!=='stopped';
+    }
+
+    function startTimer() {
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const diff = Date.now() - startTime;
+        const m = String(Math.floor(diff/60000)).padStart(2,'0');
+        const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+        timerEl.textContent = `${m}:${s}`;
+      }, 500);
+    }
+    function pauseTimer() { clearInterval(timerInterval); }
+    function resumeTimer() { startTimer(); }
+    function stopTimer() { clearInterval(timerInterval); timerEl.textContent = '00:00'; }
   </script>
 </body>
 </html> 
