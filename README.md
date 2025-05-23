@@ -33,6 +33,13 @@ No build required. Simply open `index.html` in Chrome desktop (version 79+).
 - Mobile screen capture not supported.
 - Audio mixing requires Web Audio API support.
 
+## Demo 
+https://yapweijun1996.github.io/Online-Screen-Recorder-v2/
+
+## Preview
+<img width="1170" alt="Screenshot 2025-05-24 at 12 36 29 AM" src="https://github.com/user-attachments/assets/cd926e16-3231-4739-b079-319e6176d7d4" />
+
+
 ## Contributing
 
 Contributions are welcome! Please open issues or submit pull requests.
