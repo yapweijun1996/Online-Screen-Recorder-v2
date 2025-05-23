@@ -199,6 +199,7 @@
       recordedChunks = [];
       const url = URL.createObjectURL(blob);
       downloadLink.href = url;
+      downloadLink.download = 'recording.webm';
       downloadLink.hidden = false;
       preview.srcObject = null;
       preview.src = url;
