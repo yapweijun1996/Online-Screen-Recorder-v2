@@ -131,30 +131,15 @@
     let mediaRecorder, recordedChunks = [];
     let timerInterval, startTime;
 
-    startBtn.addEventListener('click', () => {
-      // Run 3-2-1 countdown
-      countdownEl.style.opacity = '1';
-      [3,2,1].forEach((n,i) => {
-        setTimeout(() => {
-          countdownEl.textContent = n;
-          if (i === 2) {
-            setTimeout(() => {
-              countdownEl.style.opacity = '0';
-              countdownEl.textContent = '';
-              beginRecording();
-            }, 500);
-          }
-        }, i * 1000);
-      });
-    });
-
-    function beginRecording() {
+    startBtn.addEventListener('click', async () => {
       messageEl.textContent = '';
-      // Request screen + mic
-      Promise.all([
-        navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }),
-        navigator.mediaDevices.getUserMedia({ audio: true })
-      ]).then(([screenStream, micStream]) => {
+      try {
+        // Prompt for screen (with system audio) and mic permissions
+        const [screenStream, micStream] = await Promise.all([
+          navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }),
+          navigator.mediaDevices.getUserMedia({ audio: true })
+        ]);
+        // Combine tracks
         const combined = new MediaStream([
           ...screenStream.getVideoTracks(),
           ...screenStream.getAudioTracks(),
@@ -162,13 +147,26 @@
         ]);
         preview.srcObject = combined;
         setupRecorder(combined);
-        mediaRecorder.start();
-        startTimer();
-        toggleButtons('recording');
-      }).catch(err => {
+        // Run 3-2-1 countdown, then start
+        countdownEl.style.opacity = '1';
+        [3,2,1].forEach((n,i) => {
+          setTimeout(() => {
+            countdownEl.textContent = n;
+            if (i === 2) {
+              setTimeout(() => {
+                countdownEl.style.opacity = '0';
+                countdownEl.textContent = '';
+                mediaRecorder.start();
+                startTimer();
+                toggleButtons('recording');
+              }, 500);
+            }
+          }, i * 1000);
+        });
+      } catch (err) {
         messageEl.textContent = 'Error: ' + err.message;
-      });
-    }
+      }
+    });
 
     function setupRecorder(stream) {
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8,opus' });
