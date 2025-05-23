@@ -166,6 +166,13 @@
       downloadLink.href = url;
       downloadLink.download = 'recording.webm';
       downloadLink.style.display = 'inline-block';
+
+      // Playback the recording in the preview
+      preview.srcObject = null;
+      preview.src = url;
+      preview.controls = true;
+      preview.muted = false;
+      preview.play();
     }
   </script>
 </body>
